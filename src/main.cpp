@@ -1,5 +1,14 @@
 #include "../external/crow/include/crow.h"
 #include "../include/user_service.h"
+#include "room_service.h"
+#include "room.h"
+#include <crow.h>
+#include <nlohmann/json.hpp>
+
+using json = nlohmann::json;
+
+RoomService roomService;
+
 
 int main() {
     crow::SimpleApp app;
@@ -38,6 +47,45 @@ int main() {
         }
         return crow::response(result);
     });
+
+
+
+CROW_ROUTE(app, "/rooms").methods("GET"_method)([](){
+    auto rooms = roomService.getAllRooms();
+    json j = json::array();
+    for (const auto& room : rooms) {
+        j.push_back({{"id", room.getId()}, {"name", room.getName()}});
+    }
+    return crow::response{j.dump()};
+});
+
+CROW_ROUTE(app, "/rooms/<int>").methods("GET"_method)([](int id){
+    auto result = roomService.getRoomById(id);
+    if (result) {
+        json j = {{"id", result->getId()}, {"name", result->getName()}};
+        return crow::response{j.dump()};
+    }
+    return crow::response{404};
+});
+
+CROW_ROUTE(app, "/rooms").methods("POST"_method)([](const crow::request& req){
+    auto j = json::parse(req.body);
+    Room newRoom(j["id"].get<int>(), j["name"].get<std::string>(), j["capacity"].get<int>());
+ 
+   roomService.createRoom(newRoom);
+    return crow::response{201};
+});
+
+CROW_ROUTE(app, "/rooms/<int>").methods("DELETE"_method)([](int id){
+    bool success = roomService.deleteRoom(id);
+    return crow::response{success ? 200 : 404};
+});
+
+
+
+
+
+
 
     app.port(18080).multithreaded().run();
 }

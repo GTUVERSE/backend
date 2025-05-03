@@ -18,10 +18,21 @@ link_directories(
 add_executable(gtuverse_backend
     src/main.cpp
     src/user_service.cpp
+    src/room_service.cpp 
+    src/room.cpp 
 )
+
+
 
 target_link_libraries(gtuverse_backend
     PRIVATE
     pthread
     mysqlcppconnx
 )
+
+set(SOURCES
+    src/main.cpp
+    src/user_service.cpp
+    src/room_service.cpp
+)
+
