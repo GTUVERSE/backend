@@ -1,30 +1,49 @@
-#include "room_service.h"
+#include "../include/room_service.h"
 
-RoomService::RoomService() {}
+RoomService::RoomService()
+    : dbSession("localhost", 33060, "root", "4662Azraelde."), // Şifreyi sakın prod'da böyle tutma 😅
+      dbSchema(dbSession.getSchema("gtuverse_db")),
+      roomsTable(dbSchema.getTable("rooms")) {}
 
 void RoomService::createRoom(const Room& room) {
-    rooms.push_back(room);
+    roomsTable.insert("name", "capacity")
+              .values(room.getName(), room.getCapacity())
+              .execute();
 }
 
 std::optional<Room> RoomService::getRoomById(int id) const {
-    for (const auto& room : rooms) {
-        if (room.getId() == id) {
-            return room;
-        }
+    auto result = roomsTable
+                    .select("id", "name", "capacity")
+                    .where("id = :id").bind("id", id)
+                    .execute();
+
+    for (auto row : result) {
+        return Room(
+            row[0].get<int>(),
+            row[1].get<std::string>(),
+            row[2].get<int>()
+        );
     }
     return std::nullopt;
 }
 
 std::vector<Room> RoomService::getAllRooms() const {
-    return rooms;
+    std::vector<Room> resultList;
+    auto result = roomsTable.select("id", "name", "capacity").execute();
+    for (auto row : result) {
+        resultList.push_back(Room(
+            row[0].get<int>(),
+            row[1].get<std::string>(),
+            row[2].get<int>()
+        ));
+    }
+    return resultList;
 }
 
 bool RoomService::deleteRoom(int id) {
-    for (auto it = rooms.begin(); it != rooms.end(); ++it) {
-        if (it->getId() == id) {
-            rooms.erase(it);
-            return true;
-        }
-    }
-    return false;
+    auto result = roomsTable
+                    .remove()
+                    .where("id = :id").bind("id", id)
+                    .execute();
+    return result.getAffectedItemsCount() > 0;
 }

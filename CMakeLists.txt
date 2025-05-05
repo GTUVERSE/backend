@@ -20,6 +20,7 @@ add_executable(gtuverse_backend
     src/user_service.cpp
     src/room_service.cpp 
     src/room.cpp 
+    src/room_user_service.cpp
 )
 
 

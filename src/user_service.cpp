@@ -19,26 +19,37 @@ bool UserService::registerUser(const std::string& username, const std::string& p
 
 std::optional<User> UserService::loginUser(const std::string& username, const std::string& password) {
     try {
-        auto result = usersTable.select("username", "password")
+        auto result = usersTable.select("id", "username", "password")
             .where("username = :un AND password = :pw")
             .bind("un", username)
             .bind("pw", password)
             .execute();
 
-        if (result.count() > 0) {
-            return User{username, password};
+        for (auto row : result) { 
+            User user;
+            user.id = row[0].get<int>();
+            user.username = row[1].get<std::string>();
+            user.password = row[2].get<std::string>();
+            return user;
         }
     } catch (...) {}
     return std::nullopt;
 }
 
+
+
 std::vector<User> UserService::getAllUsers() {
     std::vector<User> resultList;
     try {
-        auto result = usersTable.select("username", "password").execute();
+        auto result = usersTable.select("id", "username", "password").execute();
         for (auto row : result) {
-            resultList.push_back({row[0].get<std::string>(), row[1].get<std::string>()});
+            User user;
+            user.id = row[0].get<int>();
+            user.username = row[1].get<std::string>();
+            user.password = row[2].get<std::string>();
+            resultList.push_back(user);
         }
     } catch (...) {}
     return resultList;
 }
+
