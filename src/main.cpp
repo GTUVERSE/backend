@@ -91,21 +91,34 @@ int main() {
     });*/
     
     CROW_ROUTE(app, "/rooms").methods("POST"_method)([](const crow::request& req){
-        auto j = json::parse(req.body);
-        std::string name = j["name"];
-        int capacity = j["capacity"];
+        try {
+            auto j = json::parse(req.body);
+            std::string name = j["name"];
+            int capacity = j["capacity"];
     
-        Room newRoom(0, name, capacity);
-        roomService.createRoom(newRoom);
+            // Aynı isimde oda var mı kontrol et
+            if (roomService.roomExistsByName(name)) {
+                crow::json::wvalue error;
+                error["error"] = "Room with the same name already exists";
+                return crow::response{409, error};  // 409 Conflict
+            }
     
-        // ID'yi almak için tekrar sorgulama:
-        auto rooms = roomService.getAllRooms();
-        const Room& lastRoom = rooms.back();  // En son eklenen oda
+            Room newRoom(0, name, capacity);
+            roomService.createRoom(newRoom);
     
-        crow::json::wvalue response;
-        response["message"] = "Room created";
-        response["id"] = lastRoom.getId();
-        return crow::response{201, response};
+            auto rooms = roomService.getAllRooms();
+            const Room& lastRoom = rooms.back();
+    
+            crow::json::wvalue response;
+            response["message"] = "Room created";
+            response["id"] = lastRoom.getId();
+            return crow::response{201, response};
+    
+        } catch (const std::exception& e) {
+            crow::json::wvalue error;
+            error["error"] = e.what();
+            return crow::response{500, error};  // Internal Server Error
+        }
     });
     
 

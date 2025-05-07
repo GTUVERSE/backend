@@ -22,6 +22,8 @@ public:
     std::optional<Room> getRoomById(int id)const;
     std::vector<Room> getAllRooms()const;
     bool deleteRoom(int id);
+    bool roomExistsByName(const std::string& name) const;
+
 };
 
 #endif
