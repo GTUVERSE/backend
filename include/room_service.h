@@ -23,6 +23,7 @@ public:
     std::vector<Room> getAllRooms()const;
     bool deleteRoom(int id);
     bool roomExistsByName(const std::string& name) const;
+    void updateRoomSize(int roomId, int newSize);
 
 };
 

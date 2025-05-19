@@ -8,13 +8,23 @@ UserService::UserService()
       usersTable(schema.getTable("users"))
 {}
 
-bool UserService::registerUser(const std::string& username, const std::string& password) {
-    try {
-        usersTable.insert("username", "password").values(username, password).execute();
-        return true;
-    } catch (const mysqlx::Error &e) {
-        return false;  // muhtemelen username zaten var
+bool UserService::registerUser(const std::string& username, const std::string& email, const std::string& password) {
+    // Kullanıcı adının benzersiz olduğunu kontrol et
+    auto result = usersTable.select("id")
+                          .where("username = :username")
+                          .bind("username", username)
+                          .execute();
+    
+    if (result.count() > 0) {
+        return false;  // Kullanıcı adı zaten var
     }
+    
+    // Yeni kullanıcıyı ekle
+    usersTable.insert("username", "email", "password")
+              .values(username, email, password)  // email de ekliyoruz
+              .execute();
+    
+    return true;
 }
 
 std::optional<User> UserService::loginUser(const std::string& username, const std::string& password) {

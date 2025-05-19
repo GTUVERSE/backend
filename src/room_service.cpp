@@ -14,14 +14,14 @@ RoomService::RoomService()
             throw std::runtime_error("Room with the same name already exists");
         }
     
-        roomsTable.insert("name", "capacity")
-                  .values(room.getName(), room.getCapacity())
+        roomsTable.insert("name", "size")
+                  .values(room.getName(), room.getSize())
                   .execute();
     }
     
 std::optional<Room> RoomService::getRoomById(int id) const {
     auto result = roomsTable
-                    .select("id", "name", "capacity")
+                    .select("id", "name", "size")
                     .where("id = :id").bind("id", id)
                     .execute();
 
@@ -37,7 +37,7 @@ std::optional<Room> RoomService::getRoomById(int id) const {
 
 std::vector<Room> RoomService::getAllRooms() const {
     std::vector<Room> resultList;
-    auto result = roomsTable.select("id", "name", "capacity").execute();
+    auto result = roomsTable.select("id", "name", "size").execute();
     for (auto row : result) {
         resultList.push_back(Room(
             row[0].get<int>(),
@@ -64,4 +64,12 @@ bool RoomService::roomExistsByName(const std::string& name) const {
                     .bind("name", name)
                     .execute();
     return result.count() > 0;
+}
+
+void RoomService::updateRoomSize(int roomId, int newSize) {
+    roomsTable.update()
+        .set("size", newSize)
+        .where("id = :id")
+        .bind("id", roomId)
+        .execute();
 }

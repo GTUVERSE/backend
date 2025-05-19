@@ -1,4 +1,5 @@
 #include "../include/room_user_service.h"
+#include "../include/room_service.h"
 #include <iostream>
 RoomUserService::RoomUserService()
     : dbSession("localhost", 33060, "root", "4662Azraelde."), 
@@ -6,18 +7,36 @@ RoomUserService::RoomUserService()
       roomUsersTable(dbSchema.getTable("room_users")) {}
 
 
-void RoomUserService::addUserToRoom(int userId, int roomId) {
-    auto existing = roomUsersTable.select("id")
-    .where("room_id = :roomId AND user_id = :userId")
-    .bind("roomId", roomId)
-    .bind("userId", userId)
-    .execute();
+      void RoomUserService::addUserToRoom(int userId, int roomId) {
+        // Kullanıcı zaten odada mı kontrol et
+        if (isUserInRoom(roomId, userId)) {
+            return; // Kullanıcı zaten odada, işlem yapma
+        }
+        
+        // Odayı getir ve kapasite kontrolü yap
+        auto roomService = RoomService();
+        auto roomOpt = roomService.getRoomById(roomId);
+        
+        if (!roomOpt.has_value()) {
+            throw std::runtime_error("Room does not exist");
+        }
+        
+        Room room = roomOpt.value();
+        
+        // Kapasite kontrolü ve oda güncelleme
+        if (room.increaseSize()) {
+            roomUsersTable.insert("room_id", "user_id")
+                .values(roomId, userId)
+                .execute();
+                
+            // Oda boyutunu güncelle
+            roomService.updateRoomSize(roomId, room.getSize());
+        } else {
+            throw std::runtime_error("Room is full");
+        }
+    }
 
-if (!existing.count()) {
-    roomUsersTable.insert("room_id", "user_id")
-        .values(roomId, userId)
-        .execute();
-}}
+
 
 
 std::vector<int> RoomUserService::getUsersInRoom(int roomId) {
@@ -57,24 +76,44 @@ std::vector<std::pair<int, std::string>> RoomUserService::getUsersWithNamesInRoo
 
 bool RoomUserService::removeUserFromRoom(int roomId, int userId) {
     try {
-        auto result = roomUsersTable.remove()
-            .where("room_id = :roomId AND user_id = :userId")
-            .bind("roomId", roomId)
-            .bind("userId", userId)
-            .execute();
-        return result.getAffectedItemsCount() > 0;
-    } catch (const std::exception& e) {
-        std::cerr << "Error removing user from room: " << e.what() << std::endl;
-        return false;
-    }
+        // Kullanıcı odada mı kontrol et
+        if (!isUserInRoom(roomId, userId)) {
+            return false; // Kullanıcı odada değilse işlem yapma
+        }
+        
+        // Odayı getir
+        auto roomService = RoomService();
+        auto roomOpt = roomService.getRoomById(roomId);
+        
+        if (!roomOpt.has_value()) {
+            return false;
+        }
+        
+        Room room = roomOpt.value();
+        room.decreaseSize();
+       // Kullanıcıyı odadan çıkar
+       auto result = roomUsersTable.remove()
+       .where("room_id = :roomId AND user_id = :userId")
+       .bind("roomId", roomId)
+       .bind("userId", userId)
+       .execute();
+       
+   // Oda boyutunu güncelle
+   roomService.updateRoomSize(roomId, room.getSize());
+   
+   return result.getAffectedItemsCount() > 0;
+} catch (const std::exception& e) {
+   std::cerr << "Error removing user from room: " << e.what() << std::endl;
+   return false;
 }
+} 
 
 
 std::vector<Room> RoomUserService::getRoomsForUser(int userId) {
     std::vector<Room> rooms;
 
     std::string query =
-        "SELECT rooms.id, rooms.name, rooms.capacity "
+        "SELECT rooms.id, rooms.name, rooms.size "
         "FROM gtuverse_db.room_users "
         "JOIN gtuverse_db.rooms ON room_users.room_id = rooms.id "
         "WHERE room_users.user_id = ?";
@@ -86,8 +125,8 @@ std::vector<Room> RoomUserService::getRoomsForUser(int userId) {
     for (auto row : result) {
         int id = row[0].get<int>();
         std::string name = row[1].get<std::string>();
-        int capacity = row[2].get<int>();
-        rooms.emplace_back(id, name, capacity);
+        int size = row[2].get<int>();
+        rooms.emplace_back(id, name, size);
     }
 
     return rooms;

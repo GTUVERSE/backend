@@ -6,7 +6,7 @@
 class UserService {
 public:
     UserService();  // constructor
-    bool registerUser(const std::string& username, const std::string& password);
+    bool registerUser(const std::string& username,const std::string& email, const std::string& password);
     std::optional<User> loginUser(const std::string& username, const std::string& password);
     std::vector<User> getAllUsers();
 
