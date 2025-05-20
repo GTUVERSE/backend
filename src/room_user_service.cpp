@@ -2,7 +2,7 @@
 #include "../include/room_service.h"
 #include <iostream>
 RoomUserService::RoomUserService()
-    : dbSession("localhost", 33060, "root", "4662Azraelde."), 
+    : dbSession("173.212.195.170", 33060, "root", "funda123"), 
       dbSchema(dbSession.getSchema("gtuverse_db")),
       roomUsersTable(dbSchema.getTable("room_users")) {}
 

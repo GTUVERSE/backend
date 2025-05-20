@@ -1,7 +1,7 @@
 #include "../include/room_service.h"
 
 RoomService::RoomService()
-    : dbSession("localhost", 33060, "root", "4662Azraelde."), // Şifreyi sakın prod'da böyle tutma 😅
+    : dbSession("173.212.195.170", 33060, "root", "funda123"), 
       dbSchema(dbSession.getSchema("gtuverse_db")),
       roomsTable(dbSchema.getTable("rooms")) {}
 

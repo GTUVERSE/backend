@@ -3,7 +3,7 @@
 #include <stdexcept>
 
 UserService::UserService()
-    : session("localhost", 33060, "root", "4662Azraelde."),
+    : session("173.212.195.170", 33060, "root", "funda123"),
       schema(session.getSchema("gtuverse_db")),
       usersTable(schema.getTable("users"))
 {}
