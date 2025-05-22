@@ -9,6 +9,7 @@ public:
     bool registerUser(const std::string& username,const std::string& email, const std::string& password);
     std::optional<User> loginUser(const std::string& username, const std::string& password);
     std::vector<User> getAllUsers();
+     std::optional<User> getUserByUsername(const std::string& username);
 
 private:
     mysqlx::Session session;

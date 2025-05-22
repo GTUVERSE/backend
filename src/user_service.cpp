@@ -1,6 +1,8 @@
+#include <iostream> 
 #include "../include/user_service.h"
 #include <mysqlx/xdevapi.h>
 #include <stdexcept>
+   
 
 UserService::UserService()
     : session("173.212.195.170", 33060, "root", "funda123"),
@@ -26,6 +28,44 @@ bool UserService::registerUser(const std::string& username, const std::string& e
     
     return true;
 }
+std::optional<User> UserService::getUserByUsername(const std::string& username) {
+    try {
+        auto result = usersTable
+            .select("id", "username", "email", "password")
+            .where("username = :un")
+            .bind("un", username)
+            // you can also add .limit(1) here if you like
+            .execute();
+
+        // fetch exactly one row
+        auto row = result.fetchOne();
+        if (!row) {
+            // no matching username
+            return std::nullopt;
+        }
+
+        User u;
+        u.id       = row[0].get<int>();
+        u.username = row[1].get<std::string>();
+        // email might be NULL in the DB, guard against that:
+        if (!row[2].isNull()) {
+            u.email = row[2].get<std::string>();
+        } else {
+            u.email = "";  
+        }
+        u.password = row[3].get<std::string>();
+        return u;
+    }
+    catch (const mysqlx::Error &err) {
+        std::cerr << "getUserByUsername DB error: " << err.what() << std::endl;
+    }
+    catch (const std::exception &ex) {
+        std::cerr << "getUserByUsername error: " << ex.what() << std::endl;
+    }
+    return std::nullopt;
+}
+
+
 
 std::optional<User> UserService::loginUser(const std::string& username, const std::string& password) {
     try {

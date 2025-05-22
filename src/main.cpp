@@ -31,6 +31,7 @@ int main() {
     });
     
 
+   /*
     CROW_ROUTE(app, "/login").methods("POST"_method)
     ([&](const crow::request& req){
         auto body = crow::json::load(req.body);
@@ -43,7 +44,33 @@ int main() {
         } else {
             return crow::response(401, "Invalid credentials");
         }
-    });
+    });*/
+
+    // main.cpp içinde
+
+CROW_ROUTE(app, "/login").methods("POST"_method)
+([&](const crow::request& req){
+    auto body = crow::json::load(req.body);
+    if (!body) return crow::response(400);
+
+    std::string username = body["username"].s();
+    std::string password = body["password"].s();
+    auto optUser = userService.loginUser(username, password);
+
+    if (optUser.has_value()) {
+        // Başarılı login → kullanıcı id’sini JSON ile dön
+        crow::json::wvalue res;
+        res["id"]       = optUser->id;
+        res["username"] = optUser->username;
+        // eğer email vs. de dönmek istersen ekleyebilirsin
+        return crow::response{200, res};
+    } else {
+        crow::json::wvalue err;
+        err["error"] = "Invalid credentials";
+        return crow::response{401, err};
+    }
+});
+
 
     CROW_ROUTE(app, "/users").methods("GET"_method)
     ([&](){
@@ -258,6 +285,32 @@ CROW_ROUTE(app, "/users/<int>/rooms").methods("GET"_method)
         std::cerr << "Error in GET /users/<id>/rooms: " << e.what() << std::endl;
         return crow::response{500};
     }
+});
+
+
+
+
+// GET /users/username/<string> ile kullanıcıyı getir
+CROW_ROUTE(app, "/users/username/<string>")
+.methods("GET"_method)
+([&](const crow::request&, const std::string& username){
+    std::cout << "Aranan kullanıcı adı: " << username << std::endl;
+    
+    auto optUser = userService.getUserByUsername(username);
+    if (!optUser) {
+        std::cout << "Kullanıcı bulunamadı: " << username << std::endl;
+        crow::json::wvalue error;
+        error["error"] = "User not found";
+        return crow::response{404, error};
+    }
+    
+    std::cout << "Kullanıcı bulundu: " << username << " (ID: " << optUser->id << ")" << std::endl;
+    const auto& u = *optUser;
+    crow::json::wvalue res;
+    res["id"]       = u.id;
+    //res["username"] = u.username;
+    //res["email"]    = u.email;
+    return crow::response{200, res};
 });
 
 
