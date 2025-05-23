@@ -10,6 +10,8 @@ public:
     std::optional<User> loginUser(const std::string& username, const std::string& password);
     std::vector<User> getAllUsers();
      std::optional<User> getUserByUsername(const std::string& username);
+   bool updateUsername(int userId, const std::string& newUsername);
+
 
 private:
     mysqlx::Session session;

@@ -103,3 +103,39 @@ std::vector<User> UserService::getAllUsers() {
     return resultList;
 }
 
+
+
+
+bool UserService::updateUsername(int userId, const std::string& newUsername) {
+    try {
+        // Yeni kullanıcı adının benzersiz olup olmadığını kontrol et
+        auto checkResult = usersTable.select("id")
+                                  .where("username = :username AND id != :userId")
+                                  .bind("username", newUsername)
+                                  .bind("userId", userId)
+                                  .execute();
+        
+        if (checkResult.count() > 0) {
+            // Bu kullanıcı adı başka bir kullanıcı tarafından zaten kullanılıyor
+            return false;
+        }
+        
+        // Kullanıcı adını güncelle
+        auto result = usersTable.update()
+                              .set("username", newUsername)
+                              .where("id = :id")
+                              .bind("id", userId)
+                              .execute();
+        
+        // Etkilenen satır sayısını kontrol et
+        return result.getAffectedItemsCount() > 0;
+    } 
+    catch (const mysqlx::Error &err) {
+        std::cerr << "updateUsername DB error: " << err.what() << std::endl;
+        return false;
+    }
+    catch (const std::exception &ex) {
+        std::cerr << "updateUsername error: " << ex.what() << std::endl;
+        return false;
+    }
+}

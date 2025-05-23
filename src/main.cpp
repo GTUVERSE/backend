@@ -46,7 +46,7 @@ int main() {
         }
     });*/
 
-    // main.cpp içinde
+   
 
 CROW_ROUTE(app, "/login").methods("POST"_method)
 ([&](const crow::request& req){
@@ -313,6 +313,57 @@ CROW_ROUTE(app, "/users/username/<string>")
     return crow::response{200, res};
 });
 
+
+
+
+
+// PUT /users/<int>/username - Kullanıcı adını değiştir
+CROW_ROUTE(app, "/users/<int>/username")
+.methods("PUT"_method)
+([&](const crow::request& req, int userId) {
+    try {
+        auto body = crow::json::load(req.body);
+        if (!body) {
+            crow::json::wvalue error;
+            error["error"] = "Invalid JSON";
+            return crow::response(400, error);
+        }
+        
+        // Yeni kullanıcı adını al
+        std::string newUsername = body["username"].s();
+        
+        // Boş kullanıcı adı kontrolü
+        if (newUsername.empty()) {
+            crow::json::wvalue error;
+            error["error"] = "Username cannot be empty";
+            return crow::response(400, error);
+        }
+        
+        // Kullanıcı adını güncelle
+        bool success = userService.updateUsername(userId, newUsername);
+        
+        if (success) {
+            // Güncellenmiş kullanıcı bilgisini al
+            auto updatedUser = userService.getUserByUsername(newUsername);
+            
+            crow::json::wvalue result;
+            result["message"] = "Username updated successfully";
+            result["id"] = userId;
+            result["username"] = newUsername;
+            
+            return crow::response(200, result);
+        } else {
+            crow::json::wvalue error;
+            error["error"] = "Username is already taken or user not found";
+            return crow::response(409, error);
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "Error in PUT /users/<id>/username: " << e.what() << std::endl;
+        crow::json::wvalue error;
+        error["error"] = e.what();
+        return crow::response(500, error);
+    }
+});
 
     app.port(18080).multithreaded().run();
 }
