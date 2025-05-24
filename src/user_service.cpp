@@ -4,12 +4,15 @@
 #include <stdexcept>
    
 
-UserService::UserService()
-    : session("173.212.195.170", 33060, "root", "funda123"),
-      schema(session.getSchema("gtuverse_db")),
-      usersTable(schema.getTable("users"))
+ UserService::UserService()
+  : session(
+      // URI formatında: kullanıcı:şifre@host:port ve SSL kapalı
+      "mysqlx://remote:funda123@173.212.195.170:33060"
+      "?ssl-mode=DISABLED"
+    ),
+    schema(session.getSchema("gtuverse_db")),
+    usersTable(schema.getTable("users"))
 {}
-
 bool UserService::registerUser(const std::string& username, const std::string& email, const std::string& password) {
     // Kullanıcı adının benzersiz olduğunu kontrol et
     auto result = usersTable.select("id")

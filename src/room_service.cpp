@@ -1,11 +1,14 @@
 #include "../include/room_service.h"
 
-RoomService::RoomService()
-    : dbSession("173.212.195.170", 33060, "root", "funda123"), 
-      dbSchema(dbSession.getSchema("gtuverse_db")),
-      roomsTable(dbSchema.getTable("rooms")) {}
-
-
+  RoomService::RoomService()
+  : dbSession(
+      // URI formatında: kullanıcı:şifre@host:port ve SSL kapalı
+      "mysqlx://remote:funda123@173.212.195.170:33060"
+      "?ssl-mode=DISABLED"
+    ),
+    dbSchema(dbSession.getSchema("gtuverse_db")),
+    roomsTable(dbSchema.getTable("rooms"))
+{}
 
 
       

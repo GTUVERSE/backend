@@ -1,10 +1,19 @@
 #include "../include/room_user_service.h"
 #include "../include/room_service.h"
 #include <iostream>
+#include <mysqlx/xdevapi.h>
+using namespace mysqlx;
+
 RoomUserService::RoomUserService()
-    : dbSession("173.212.195.170", 33060, "root", "funda123"), 
-      dbSchema(dbSession.getSchema("gtuverse_db")),
-      roomUsersTable(dbSchema.getTable("room_users")) {}
+  : dbSession(
+      // URI formatında: kullanıcı:şifre@host:port ve SSL kapalı
+      "mysqlx://remote:funda123@173.212.195.170:33060"
+      "?ssl-mode=DISABLED"
+    ),
+    dbSchema(dbSession.getSchema("gtuverse_db")),
+    roomUsersTable(dbSchema.getTable("room_users"))
+{}
+
 
 
       void RoomUserService::addUserToRoom(int userId, int roomId) {
