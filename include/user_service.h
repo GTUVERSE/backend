@@ -11,7 +11,7 @@ public:
     std::vector<User> getAllUsers();
      std::optional<User> getUserByUsername(const std::string& username);
    bool updateUsername(int userId, const std::string& newUsername);
-
+ std::optional<User> getUserById(int id);
 
 private:
     mysqlx::Session session;

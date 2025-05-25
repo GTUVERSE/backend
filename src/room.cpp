@@ -2,11 +2,19 @@
 
 Room::Room() : id(0), name(""), size(0) {}
 
-Room::Room(int id, const std::string& name, int size)
-    : id(id), name(name), size(size) {}
+Room::Room(int id, const std::string& name, int size,const std::string& type)
+    : id(id), name(name), size(size),type(type) {}
 
 int Room::getId() const {
     return id;
+}
+// getType ve setType tanımları — mutlaka Room:: kapsamıyla
+const std::string& Room::getType() const {
+    return type;
+}
+
+void Room::setType(const std::string& t) {
+    type = t;
 }
 
 std::string Room::getName() const {

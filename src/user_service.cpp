@@ -91,6 +91,8 @@ std::optional<User> UserService::loginUser(const std::string& username, const st
 
 
 
+
+
 std::vector<User> UserService::getAllUsers() {
     std::vector<User> resultList;
     try {
@@ -140,5 +142,31 @@ bool UserService::updateUsername(int userId, const std::string& newUsername) {
     catch (const std::exception &ex) {
         std::cerr << "updateUsername error: " << ex.what() << std::endl;
         return false;
+    }
+}
+
+
+std::optional<User> UserService::getUserById(int userId) {
+    try {
+        auto result = usersTable
+            .select("id", "username", "password", "email")
+            .where("id = :id")
+            .bind("id", userId)
+            .execute();
+
+        if (result.count() > 0) {
+            auto row = result.fetchOne();
+            User user;
+            user.id = row[0].get<int>();
+            user.username = row[1].get<std::string>();
+            user.password = row[2].get<std::string>();
+            user.email = row[3].get<std::string>();
+            return user;
+        }
+        
+        return std::nullopt;
+    } catch (const std::exception& e) {
+        std::cerr << "Error in getUserById: " << e.what() << std::endl;
+        return std::nullopt;
     }
 }

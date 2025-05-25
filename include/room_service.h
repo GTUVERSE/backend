@@ -24,6 +24,8 @@ public:
     bool deleteRoom(int id);
     bool roomExistsByName(const std::string& name) const;
     void updateRoomSize(int roomId, int newSize);
+    bool incrementRoomSize(int roomId);
+bool updateRoom(const Room& room);
 
 };
 

@@ -85,7 +85,22 @@ CROW_ROUTE(app, "/login").methods("POST"_method)
 
 
 
-    CROW_ROUTE(app, "/rooms").methods("GET"_method)([](){
+    CROW_ROUTE(app, "/roomsWEB").methods("GET"_method)([](){
+        auto rooms = roomService.getAllRooms();
+        json j = json::array();
+        for (const auto& room : rooms) {
+            j.push_back({
+                {"id", room.getId()},
+                {"name", room.getName()},
+                {"size", room.getSize()},
+                {"type", room.getType()},
+                {"capacity", room.getCapacity()}
+            });
+        }
+        return crow::response{j.dump()};
+    });
+    
+      CROW_ROUTE(app, "/rooms").methods("GET"_method)([](){
         auto rooms = roomService.getAllRooms();
         json j = json::array();
         for (const auto& room : rooms) {
@@ -98,7 +113,6 @@ CROW_ROUTE(app, "/login").methods("POST"_method)
         }
         return crow::response{j.dump()};
     });
-    
 
     CROW_ROUTE(app, "/rooms/<int>").methods("GET"_method)([](int id){
         auto result = roomService.getRoomById(id);
@@ -113,6 +127,22 @@ CROW_ROUTE(app, "/login").methods("POST"_method)
         }
         return crow::response{404};
     });
+
+      CROW_ROUTE(app, "/roomsWEB/<int>").methods("GET"_method)([](int id){
+        auto result = roomService.getRoomById(id);
+        if (result) {
+            json j = {
+                {"id", result->getId()},
+                {"name", result->getName()},
+                {"size", result->getSize()},
+                {"type", result->getType()}, // Oda tipi eklendi
+                {"capacity", result->getCapacity()}
+            };
+            return crow::response{j.dump()};
+        }
+        return crow::response{404};
+    });
+    
     
 
     /*CROW_ROUTE(app, "/rooms").methods("POST"_method)([](const crow::request& req){
@@ -129,6 +159,7 @@ CROW_ROUTE(app, "/login").methods("POST"_method)
         try {
             auto j = json::parse(req.body);
             std::string name = j["name"];
+            std::string type = j["type"]; // Oda tipi eklendi
            // int size = j["size"];
            int size = 0; // Varsayılan boyut
     
@@ -139,7 +170,7 @@ CROW_ROUTE(app, "/login").methods("POST"_method)
                 return crow::response{409, error};  // 409 Conflict
             }
     
-            Room newRoom(0, name, size);
+            Room newRoom(0, name, size,type);
             roomService.createRoom(newRoom);
     
             auto rooms = roomService.getAllRooms();
@@ -151,6 +182,7 @@ CROW_ROUTE(app, "/login").methods("POST"_method)
             response["name"] = lastRoom.getName();
             response["size"] = lastRoom.getSize();
             response["capacity"] = lastRoom.getCapacity();
+            response["type"] = lastRoom.getType(); // Oda tipi de eklendi
             return crow::response{201, response};
     
         } catch (const std::exception& e) {
@@ -166,8 +198,7 @@ CROW_ROUTE(app, "/rooms/<int>").methods("DELETE"_method)([](int id){
     return crow::response{success ? 200 : 404};
 });
 
-
-
+/*
 CROW_ROUTE(app, "/rooms/<int>/users").methods("POST"_method)
 ([&](const crow::request& req, int roomId) {
     try {
@@ -209,7 +240,70 @@ CROW_ROUTE(app, "/rooms/<int>/users").methods("POST"_method)
         error["error"] = e.what();
         return crow::response(500, error);
     }
+});*/
+
+CROW_ROUTE(app, "/rooms/<int>/users").methods("POST"_method)
+([&](const crow::request& req, int roomId) {
+    try {
+        auto j = json::parse(req.body);
+        int userId = j["user_id"];
+
+        // Kullanıcı var mı kontrolü
+        auto userOpt = userService.getUserById(userId);
+        if (!userOpt.has_value()) {
+            crow::json::wvalue error;
+            error["error"] = "User not found";
+            return crow::response(404, error);
+        }
+
+        // Kullanıcı zaten odada mı?
+        if (roomUserService.isUserInRoom(roomId, userId)) {
+            crow::json::wvalue error;
+            error["error"] = "User is already in this room";
+            return crow::response(409, error);
+        }
+
+        // Oda kontrolü
+        auto roomOpt = roomService.getRoomById(roomId);
+        if (!roomOpt.has_value()) {
+            crow::json::wvalue error;
+            error["error"] = "Room not found";
+            return crow::response(404, error);
+        }
+
+        Room room = *roomOpt;
+
+        // Kapasite dolu mu?
+        if (room.getSize() >= room.getCapacity()) {
+            crow::json::wvalue error;
+            error["error"] = "Room is full";
+            return crow::response(409, error);
+        }
+
+       
+        roomUserService.addUserToRoom(userId, roomId);
+
+      
+        room.setSize(room.getSize() + 1);
+        roomService.updateRoom(room);
+
+        crow::json::wvalue success;
+        success["message"] = "User added to room";
+        success["room_id"] = roomId;
+        success["user_id"] = userId;
+        success["current_size"] = room.getSize();
+
+        return crow::response(201, success);
+
+    } catch (const std::exception& e) {
+        crow::json::wvalue error;
+        error["error"] = e.what();
+        return crow::response(500, error);
+    }
 });
+
+
+
 
 
 CROW_ROUTE(app, "/rooms/<int>/users").methods("GET"_method)
@@ -229,6 +323,8 @@ CROW_ROUTE(app, "/rooms/<int>/users").methods("GET"_method)
         return crow::response{500, "Internal Server Error"};
     }
 });
+
+
 
 
 
@@ -266,7 +362,7 @@ CROW_ROUTE(app, "/rooms/<int>/users/<int>").methods("DELETE"_method)
 });
 
 
-
+/*
 
 CROW_ROUTE(app, "/users/<int>/rooms").methods("GET"_method)
 ([&](int userId) {
@@ -285,9 +381,80 @@ CROW_ROUTE(app, "/users/<int>/rooms").methods("GET"_method)
         std::cerr << "Error in GET /users/<id>/rooms: " << e.what() << std::endl;
         return crow::response{500};
     }
+
 });
 
 
+
+
+
+ CROW_ROUTE(app, "/usersWEB/<int>/rooms").methods("GET"_method)
+ ([&](int userId) {
+     try {
+         auto rooms = roomUserService.getRoomsForUser(userId);
+         crow::json::wvalue response;
+
+         for (size_t i = 0; i < rooms.size(); ++i) {
+             response[i]["id"]   = rooms[i].getId();
+             response[i]["name"] = rooms[i].getName();
+     response[i]["size"] = rooms[i].getSize();
+         response[i]["type"] = rooms[i].getType();   // ← Oda tipi eklendi
+         }
+
+         return crow::response{response};
+     } catch (const std::exception& e) {
+         std::cerr << "Error in GET /users/<id>/rooms: " << e.what() << std::endl;
+         return crow::response{500};
+     }
+ });
+
+
+
+*/
+
+
+// /usersWEB/<int>/rooms endpoint'i düzeltmesi
+CROW_ROUTE(app, "/usersWEB/<int>/rooms").methods("GET"_method)
+([&](int userId) {
+    try {
+        auto rooms = roomUserService.getRoomsForUser(userId);
+        crow::json::wvalue response = crow::json::wvalue::list(); // Liste olarak başlat
+
+        for (size_t i = 0; i < rooms.size(); ++i) {
+            response[i]["id"] = rooms[i].getId();
+            response[i]["name"] = rooms[i].getName();
+            response[i]["size"] = rooms[i].getSize();
+            response[i]["type"] = rooms[i].getType();
+        }
+
+        return crow::response(200, response);
+    } catch (const std::exception& e) {
+        crow::json::wvalue error;
+        error["error"] = e.what();
+        return crow::response(500, error);
+    }
+});
+
+// /users/<int>/rooms endpoint'i düzeltmesi
+CROW_ROUTE(app, "/users/<int>/rooms").methods("GET"_method)
+([&](int userId) {
+    try {
+        auto rooms = roomUserService.getRoomsForUser(userId);
+        crow::json::wvalue response = crow::json::wvalue::list(); // Liste olarak başlat
+
+        for (size_t i = 0; i < rooms.size(); ++i) {
+            response[i]["id"] = rooms[i].getId();
+            response[i]["name"] = rooms[i].getName();
+            response[i]["size"] = rooms[i].getSize();
+        }
+
+        return crow::response(200, response);
+    } catch (const std::exception& e) {
+        crow::json::wvalue error;
+        error["error"] = e.what();
+        return crow::response(500, error);
+    }
+});
 
 
 // GET /users/username/<string> ile kullanıcıyı getir

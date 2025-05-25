@@ -117,12 +117,12 @@ bool RoomUserService::removeUserFromRoom(int roomId, int userId) {
 }
 } 
 
-
+/*
 std::vector<Room> RoomUserService::getRoomsForUser(int userId) {
     std::vector<Room> rooms;
 
     std::string query =
-        "SELECT rooms.id, rooms.name, rooms.size "
+        "SELECT rooms.id, rooms.name, rooms.size ,rooms.type"
         "FROM gtuverse_db.room_users "
         "JOIN gtuverse_db.rooms ON room_users.room_id = rooms.id "
         "WHERE room_users.user_id = ?";
@@ -135,12 +135,41 @@ std::vector<Room> RoomUserService::getRoomsForUser(int userId) {
         int id = row[0].get<int>();
         std::string name = row[1].get<std::string>();
         int size = row[2].get<int>();
-        rooms.emplace_back(id, name, size);
+        std::string type  = row[3].get<std::string>();
+        rooms.emplace_back(id, name, size,type);
     }
 
     return rooms;
 }
+*/
+std::vector<Room> RoomUserService::getRoomsForUser(int userId) {
+    std::vector<Room> rooms;
+    try {
+        std::string query = 
+            "SELECT rooms.id, rooms.name, rooms.size, rooms.type "
+            "FROM gtuverse_db.room_users "
+            "JOIN gtuverse_db.rooms ON room_users.room_id = rooms.id "
+            "WHERE room_users.user_id = ?";
 
+        auto stmt = dbSession.sql(query);
+        stmt.bind(userId);
+        auto result = stmt.execute();
+
+        for (auto row : result) {
+            int id = row[0].get<int>();
+            std::string name = row[1].get<std::string>();
+            int size = row[2].get<int>();
+            std::string type = row[3].get<std::string>();
+            
+            // Room constructor'ı 4 parametre alıyor: id, name, size, type
+            rooms.emplace_back(id, name, size, type);
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "Error in getRoomsForUser: " << e.what() << std::endl;
+    }
+    
+    return rooms;
+}
 
 bool RoomUserService::isUserInRoom(int roomId, int userId) {
     try {
