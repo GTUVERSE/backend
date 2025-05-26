@@ -26,6 +26,7 @@ public:
     void updateRoomSize(int roomId, int newSize);
     bool incrementRoomSize(int roomId);
 bool updateRoom(const Room& room);
+    std::vector<Room> getRoomsByType(const std::string& type) const;
 
 };
 

@@ -109,3 +109,22 @@ bool RoomService::updateRoom(const Room& room) {
         return false;
     }
 }
+
+std::vector<Room> RoomService::getRoomsByType(const std::string& type) const {
+    std::vector<Room> resultList;
+    auto result = roomsTable
+                    .select("id", "name", "size", "type")
+                    .where("LOWER(type) = LOWER(:type)")  // Büyük/küçük harf duyarsız karşılaştırma
+                    .bind("type", type)
+                    .execute();
+
+    for (auto row : result) {
+        resultList.emplace_back(
+            row[0].get<int>(),            // id
+            row[1].get<std::string>(),    // name
+            row[2].get<int>(),            // size
+            row[3].get<std::string>()     // type
+        );
+    }
+    return resultList;
+}

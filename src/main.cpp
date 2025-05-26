@@ -532,5 +532,36 @@ CROW_ROUTE(app, "/users/<int>/username")
     }
 });
 
+CROW_ROUTE(app, "/rooms/type/<string>").methods("GET"_method)
+([&](const std::string& type){
+    try {
+        auto rooms = roomService.getRoomsByType(type);
+        
+        if (rooms.empty()) {
+            crow::json::wvalue error;
+            error["error"] = "No rooms found with type: " + type;
+            return crow::response(404, error);
+        }
+
+        json j = json::array();
+        for (const auto& room : rooms) {
+            j.push_back({
+                {"id", room.getId()},
+                {"name", room.getName()},
+                {"size", room.getSize()},
+                {"type", room.getType()},
+                {"capacity", room.getCapacity()}
+            });
+        }
+        return crow::response(200, j.dump());
+
+    } catch (const std::exception& e) {
+        crow::json::wvalue error;
+        error["error"] = e.what();
+        return crow::response(500, error);
+    }
+});
+
+
     app.port(18080).multithreaded().run();
 }
